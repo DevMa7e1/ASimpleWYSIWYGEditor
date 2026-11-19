@@ -1,8 +1,9 @@
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QMainWindow, QWidget, QApplication, QHBoxLayout, QVBoxLayout, QLabel, QPushButton
+from PyQt6.QtWidgets import QMainWindow, QWidget, QApplication, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QScrollArea
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import sys
 from python_elements import *
+from functools import partial
 
 app = QApplication(sys.argv)
 
@@ -30,10 +31,28 @@ class MainWindow(QMainWindow):
         ttitle.setText('Toolbox')
         toolbox.addWidget(ttitle)
 
-        testbtn = QPushButton()
-        testbtn.setText('Add <h1>')
-        testbtn.pressed.connect(self.test_add)
-        toolbox.addWidget(testbtn)
+        addcontainer = QWidget()
+        addbox = QVBoxLayout()
+        addcontainer.setLayout(addbox)
+
+        for section in all_elements.keys():
+            label = QLabel()
+            label.setText(section)
+            font = self.font()
+            font.setPixelSize(16)
+            font.setBold(True)
+            label.setFont(font)
+            addbox.addWidget(label)
+            for element in all_elements[section]:
+                addbtn = QPushButton()
+                addbtn.setText(element.friendly_name)
+                addbtn.setStyleSheet('margin-left: 8px;')
+                addbtn.pressed.connect(partial(self.add_element, element))
+                addbox.addWidget(addbtn)
+        
+        addview = QScrollArea()
+        addview.setWidget(addcontainer)
+        toolbox.addWidget(addview)
 
         mainbox.addWidget(toolcontainer)
 
@@ -65,13 +84,10 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(maincontainer)
 
-    def test_add(self):
-        newh1 = Sh1()
-        text = Text()
-        text.text = 'New header'
-        newh1.properties_inside_tag['id'] = f'newh1-{len(self.elements)}'
-        newh1.contains.append(text)
-        self.elements.append(newh1)
+    def add_element(self, element: type[Element]):
+        new_element = element()
+        new_element.properties_inside_tag['id'] = f'{element.kind[1:-1]}{len(self.elements)}'
+        self.elements.append(new_element)
         self.render_html_content()
 
     def render_html_content(self):
@@ -82,7 +98,7 @@ class MainWindow(QMainWindow):
         f.close()
         middle = ''
         for element in self.elements:
-            middle += element.to_html()
+            middle += element.to_html() + '\n'
         self.html.setHtml(top + middle + bottom)
 
     def element_clicked(self):
