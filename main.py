@@ -1,5 +1,6 @@
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QMainWindow, QWidget, QApplication, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QScrollArea
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtWidgets import QMainWindow, QWidget, QApplication, QHBoxLayout, QVBoxLayout, \
+QLabel, QPushButton, QScrollArea, QTableWidget, QTableWidgetItem
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import sys
 from python_elements import *
@@ -13,6 +14,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('ASimpleWYSIWIGEditor')
 
         self.elements: list[Element] = []
+        self.lookup: dict[str, Element] = {}
+        self.last_good_title = None
+        self.automated_activity = False
 
         maincontainer = QWidget()
         mainbox = QHBoxLayout()
@@ -80,13 +84,61 @@ class MainWindow(QMainWindow):
         self.ename = ename
         properties.addWidget(ename)
 
+        paddbtn = QPushButton()
+        paddbtn.setText('Add new...')
+        paddbtn.pressed.connect(self.add_row)
+        properties.addWidget(paddbtn)
+
+        ptable = QTableWidget()
+        ptable.setFixedWidth(213)
+        ptable.setRowCount(1)
+        ptable.setColumnCount(2)
+        ptable.setHorizontalHeaderLabels(['name', 'value'])
+        ptable.cellChanged.connect(self.update_element)
+        self.ptable = ptable
+        properties.addWidget(ptable)
+
         mainbox.addWidget(properties_container)
 
         self.setCentralWidget(maincontainer)
 
+    def add_row(self):
+        self.ptable.setRowCount(self.ptable.rowCount()+1)
+
+    def update_element(self):
+        if not self.automated_activity:
+            if self.last_good_title != None:
+                self.automated_activity = True
+                element = self.lookup[self.last_good_title]
+                _id = element.properties_inside_tag['id']
+                element.properties_inside_tag.clear()
+                element.properties_inside_tag['id'] = _id
+                for i in range(self.ptable.rowCount()):
+                    name = self.ptable.item(i, 0)
+                    value = self.ptable.item(i, 1)
+                    if type(name) == QTableWidgetItem and type(value) == QTableWidgetItem:
+                        if name.text() != 'id':
+                            element.properties_inside_tag[name.text()] = value.text()
+                            self.render_html_content()
+                        else:
+                            newitem = QTableWidgetItem()
+                            newitem.setText(element.properties_inside_tag['id'])
+                            self.ptable.setItem(i, 1, newitem)
+                    elif type(name) != QTableWidgetItem:
+                        self.ptable.removeRow(i)
+                    elif type(name) == QTableWidgetItem and type(value) != QTableWidgetItem:
+                        if name.text() != 'id':
+                            element.properties_inside_tag[name.text()] = ''
+                        else:
+                            newitem = QTableWidgetItem()
+                            newitem.setText(element.properties_inside_tag['id'])
+                            self.ptable.setItem(i, 1, newitem)
+            self.automated_activity = False
+
     def add_element(self, element: type[Element]):
         new_element = element()
-        new_element.properties_inside_tag['id'] = f'{element.kind[1:-1]}{len(self.elements)}'
+        new_element.properties_inside_tag['id'] = f'{element.kind[1:-1]}-{len(self.elements)}'
+        self.lookup[f'{element.kind[1:-1]}-{len(self.elements)}'] = new_element
         self.elements.append(new_element)
         self.render_html_content()
 
@@ -104,7 +156,22 @@ class MainWindow(QMainWindow):
     def element_clicked(self):
         if self.html.title() != 'default-title' and self.html.title() != 'about:blank':
             if self.html.title() != 'parentofelements':
-                self.ename.setText(self.html.title())
+                self.last_good_title = self.html.title()
+                element = self.lookup[self.html.title()]
+                self.ptable.setRowCount(len(element.properties_inside_tag.keys()))
+                line = 0
+                self.automated_activity = True
+                for i in element.properties_inside_tag.keys():
+                        self.ename.setText(self.html.title())
+                        newitem = QTableWidgetItem()
+                        newitem.setText(i)
+                        self.ptable.setItem(line, 0, newitem)
+
+                        newitem = QTableWidgetItem()
+                        newitem.setText(element.properties_inside_tag[i])
+                        self.ptable.setItem(line, 1, newitem)
+                        line += 1
+        self.automated_activity = False
 
 window = MainWindow()
 window.show()

@@ -1,3 +1,6 @@
+from _collections_abc import dict_keys
+from typing import Any
+
 class Element:
     kind = '<undefined>'
     friendly_name = 'Undefined element'
@@ -22,6 +25,30 @@ class Element:
 class Text(Element):
     kind = ''
     text = ''
+
+    class text_dict(dict):
+        def set_owner(self, owner: Text):
+            self.owner = owner
+        def __setitem__(self, key: Any, value: Any) -> None:
+            if key == 'text':
+                self.owner.text = value
+            else:
+                super().__setitem__(key, value)
+        def __getitem__(self, key: Any) -> Any:
+            if key == 'text':
+                return self.owner.text
+            return super().__getitem__(key)
+        def keys(self) -> list: #type: ignore
+            return list(super().keys()) + ['text']
+        def __len__(self) -> int:
+            return super().__len__() + 1
+    
+    def __init__(self) -> None:
+        super().__init__()
+        self.properties_inside_tag = self.text_dict()
+        self.properties_inside_tag.set_owner(self)
+        self.properties_inside_tag['id'] = 'default'
+
     def set_default(self) -> None:
         self.text = 'Text element'
     def to_html(self) -> str:
