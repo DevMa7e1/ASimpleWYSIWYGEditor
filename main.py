@@ -55,6 +55,7 @@ class MainWindow(QMainWindow):
                 addbox.addWidget(addbtn)
         
         addview = QScrollArea()
+        addview.setFixedWidth(170)
         addview.setWidget(addcontainer)
         toolbox.addWidget(addview)
 
@@ -62,6 +63,8 @@ class MainWindow(QMainWindow):
 
         html = QWebEngineView()
         html.titleChanged.connect(self.element_clicked)
+        html.setZoomFactor(0.5)
+        html.setFixedSize(QSize(960, 540))
         self.html = html
         self.refresh_html_content()
         mainbox.addWidget(html)
@@ -81,6 +84,7 @@ class MainWindow(QMainWindow):
 
         pcssinput = QPlainTextEdit()
         pcssinput.textChanged.connect(self.update_css)
+        pcssinput.setStyleSheet('border-style: solid; border-width: 1px;')
         self.pcss = pcssinput
         properties.addWidget(pcssinput)
 
@@ -157,8 +161,14 @@ class MainWindow(QMainWindow):
         if not self.automated_activity:
             if self.last_good_title != None:
                 element = self.lookup[self.last_good_title]
+                prev = element.css
                 element.css = self.pcss.toPlainText()
-                self.refresh_html_content()
+                if element.is_my_css_valid():
+                    self.refresh_html_content()
+                    self.pcss.setStyleSheet('border-style: solid; border-width: 1px; border-color: green;')
+                else:
+                    element.css = prev
+                    self.pcss.setStyleSheet('border-style: solid; border-width: 1px; border-color: red;')
 
     def add_element(self, element: type[Element]):
         new_element = element()
@@ -189,7 +199,7 @@ class MainWindow(QMainWindow):
         self.html.setHtml(top + middle + bottom)
 
     def element_clicked(self):
-        if self.html.title() != 'default-title' and self.html.title() != 'about:blank':
+        if self.html.title() != 'default-title' and self.html.title() != 'about:blank' and len(self.html.title()) < 40:
             if self.html.title() != 'parentofelements':
                 self.last_good_title = self.html.title()
                 element = self.lookup[self.html.title()]

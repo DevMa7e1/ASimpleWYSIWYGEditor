@@ -3,9 +3,18 @@
     <head>
         <title>default-title</title>
         <script>
+            var last = null;
+            function clicked(ev){
+                document.getElementsByTagName('title')[0].innerHTML = ev.target.id
+                //document.getElementById(ev.target.id).style = 'border-style: solid; border-width: 3px; border-color: light-gray;'
+                if(last != null){
+                    //last.style = '';
+                }
+                last = document.getElementById(ev.target.id);
+            }
             function loaded(){
                 const parent = document.querySelector('#parentofelements')
-                parent.addEventListener('click', (ev) => document.getElementsByTagName('title')[0].innerHTML = ev.target.id)
+                parent.addEventListener('click', clicked)
             }
         </script>
         <style>

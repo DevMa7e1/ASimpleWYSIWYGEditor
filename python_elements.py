@@ -32,6 +32,17 @@ class Element:
             ccss += '\n}\n'
             ccss += childcss
         return self.css, ccss
+    def is_my_css_valid(self):
+        valid = True
+        for line in self.css.split('\n'):
+            if line.count(':') < 1:
+                valid = False
+                break
+        if valid:
+            if len(self.css.split('\n')) > 1:
+                if not self.css.split('\n')[-2].endswith(';'):
+                    valid = False
+        return valid
 
 class Text(Element):
     kind = ''
