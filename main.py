@@ -1,6 +1,6 @@
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtWidgets import QMainWindow, QWidget, QApplication, QHBoxLayout, QVBoxLayout, \
-QLabel, QPushButton, QScrollArea, QTableWidget, QTableWidgetItem
+QLabel, QPushButton, QScrollArea, QTableWidget, QTableWidgetItem, QPlainTextEdit
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import sys
 from python_elements import *
@@ -63,7 +63,7 @@ class MainWindow(QMainWindow):
         html = QWebEngineView()
         html.titleChanged.connect(self.element_clicked)
         self.html = html
-        self.render_html_content()
+        self.refresh_html_content()
         mainbox.addWidget(html)
 
         properties_container = QWidget()
@@ -71,12 +71,25 @@ class MainWindow(QMainWindow):
         properties.setAlignment(Qt.AlignmentFlag.AlignTop)
         properties_container.setLayout(properties)
 
+        pcsstitle = QLabel()
+        pcsstitle.setText('CSS properties')
+        font = pcsstitle.font()
+        font.setPixelSize(18)
+        font.setBold(True)
+        pcsstitle.setFont(font)
+        properties.addWidget(pcsstitle)
+
+        pcssinput = QPlainTextEdit()
+        pcssinput.textChanged.connect(self.update_css)
+        self.pcss = pcssinput
+        properties.addWidget(pcssinput)
+
         ptitle = QLabel()
         font = self.font()
-        font.setPixelSize(24)
+        font.setPixelSize(18)
         font.setBold(True)
         ptitle.setFont(font)
-        ptitle.setText('Properties')
+        ptitle.setText('Element properties')
         properties.addWidget(ptitle)
 
         ename = QLabel()
@@ -91,10 +104,11 @@ class MainWindow(QMainWindow):
 
         ptable = QTableWidget()
         ptable.setFixedWidth(213)
+        ptable.setFixedHeight(150)
         ptable.setRowCount(1)
         ptable.setColumnCount(2)
         ptable.setHorizontalHeaderLabels(['name', 'value'])
-        ptable.cellChanged.connect(self.update_element)
+        ptable.cellChanged.connect(self.update_tag_properties)
         self.ptable = ptable
         properties.addWidget(ptable)
 
@@ -105,11 +119,12 @@ class MainWindow(QMainWindow):
     def add_row(self):
         self.ptable.setRowCount(self.ptable.rowCount()+1)
 
-    def update_element(self):
+    def update_tag_properties(self):
         if not self.automated_activity:
             if self.last_good_title != None:
                 self.automated_activity = True
                 element = self.lookup[self.last_good_title]
+
                 _id = element.properties_inside_tag['id']
                 element.properties_inside_tag.clear()
                 element.properties_inside_tag['id'] = _id
@@ -118,8 +133,11 @@ class MainWindow(QMainWindow):
                     value = self.ptable.item(i, 1)
                     if type(name) == QTableWidgetItem and type(value) == QTableWidgetItem:
                         if name.text() != 'id':
-                            element.properties_inside_tag[name.text()] = value.text()
-                            self.render_html_content()
+                            if name.text() != '':
+                                element.properties_inside_tag[name.text()] = value.text()
+                                self.refresh_html_content()
+                            else:
+                                self.ptable.removeRow(i)
                         else:
                             newitem = QTableWidgetItem()
                             newitem.setText(element.properties_inside_tag['id'])
@@ -134,23 +152,40 @@ class MainWindow(QMainWindow):
                             newitem.setText(element.properties_inside_tag['id'])
                             self.ptable.setItem(i, 1, newitem)
             self.automated_activity = False
+    
+    def update_css(self):
+        if not self.automated_activity:
+            if self.last_good_title != None:
+                element = self.lookup[self.last_good_title]
+                element.css = self.pcss.toPlainText()
+                self.refresh_html_content()
 
     def add_element(self, element: type[Element]):
         new_element = element()
         new_element.properties_inside_tag['id'] = f'{element.kind[1:-1]}-{len(self.elements)}'
         self.lookup[f'{element.kind[1:-1]}-{len(self.elements)}'] = new_element
         self.elements.append(new_element)
-        self.render_html_content()
+        self.refresh_html_content()
 
-    def render_html_content(self):
+    def refresh_html_content(self):
         f = open('translator.html')
         r = f.read()
-        top = r[:r.index('%addarea%')]
-        bottom = r[r.index('%addarea%')+len('%addarea%'):]
+        top_top = r[:r.index('/*stylearea*/')]
+        top_middle = ''
+        top_bottom = r[r.index('/*stylearea*/')+len('/*stylearea*/'):r.index('<!--addarea%-->')]
+        bottom = r[r.index('<!--addarea%-->')+len('<!--addarea%-->'):]
         f.close()
         middle = ''
         for element in self.elements:
-            middle += element.to_html() + '\n'
+            ihtml, (icss, iccss) = element.to_html(), element.get_css()
+            middle += ihtml + '\n'
+            top_middle += f'#{element.properties_inside_tag['id']} {{\n'
+            top_middle += icss
+            top_middle += '\n}\n'
+            top_middle += icss
+            top_middle += iccss
+
+        top = top_top + top_middle + top_bottom
         self.html.setHtml(top + middle + bottom)
 
     def element_clicked(self):
@@ -171,6 +206,7 @@ class MainWindow(QMainWindow):
                         newitem.setText(element.properties_inside_tag[i])
                         self.ptable.setItem(line, 1, newitem)
                         line += 1
+                self.pcss.setPlainText(element.css)
         self.automated_activity = False
 
 window = MainWindow()

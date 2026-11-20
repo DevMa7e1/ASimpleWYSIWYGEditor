@@ -8,6 +8,7 @@ class Element:
     def __init__(self) -> None:
         self.contains: list[Element] = []
         self.properties_inside_tag = {'id': 'default'}
+        self.css = ''
         self.set_default()
 
     def set_default(self) -> None:
@@ -21,6 +22,16 @@ class Element:
         for element in self.contains:
             innerhtml += element.to_html()
         return self.kind[:-1] + pinside + '>' + innerhtml + '</' + self.kind[1:]
+
+    def get_css(self) -> tuple[str, str]:
+        ccss = ''
+        for element in self.contains:
+            ccss += f'#{element.properties_inside_tag['id']} {{\n'
+            selfcss, childcss = element.get_css()
+            ccss += selfcss
+            ccss += '\n}\n'
+            ccss += childcss
+        return self.css, ccss
 
 class Text(Element):
     kind = ''
@@ -86,6 +97,10 @@ class Sbutton(Element):
 class Simg(Element):
     kind = '<img>'
     friendly_name = 'Image (<img>)'
+
+    def set_default(self) -> None:
+        self.properties_inside_tag['height'] = '100'
+        self.properties_inside_tag['width'] = '100'
 
     def to_html(self) -> str:
         pinside = ''
