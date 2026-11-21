@@ -1,4 +1,3 @@
-from _collections_abc import dict_keys
 from typing import Any
 
 class Element:
@@ -17,7 +16,10 @@ class Element:
     def to_html(self) -> str:
         pinside = ''
         for i in self.properties_inside_tag.keys():
-            pinside += f' {i}="{self.properties_inside_tag[i]}"'
+            if self.properties_inside_tag[i] != '':
+                pinside += f' {i}="{self.properties_inside_tag[i]}"'
+            else:
+                pinside += f' {i}'
         innerhtml = ''
         for element in self.contains:
             innerhtml += element.to_html()
@@ -32,6 +34,7 @@ class Element:
             ccss += '\n}\n'
             ccss += childcss
         return self.css, ccss
+
     def is_my_css_valid(self):
         valid = True
         for line in self.css.split('\n'):
@@ -43,10 +46,15 @@ class Element:
                 if not self.css.split('\n')[-2].endswith(';'):
                     valid = False
         return valid
+    
+    def give_out_ids(self, ids: list[str]):
+        for i, id in enumerate(ids):
+            self.contains[i].properties_inside_tag['id'] = id
 
 class Text(Element):
-    kind = ''
+    kind = '*text*'
     text = ''
+    friendly_name = 'Text element'
 
     class text_dict(dict):
         def set_owner(self, owner: Text):
@@ -116,7 +124,22 @@ class Simg(Element):
     def to_html(self) -> str:
         pinside = ''
         for i in self.properties_inside_tag.keys():
-            pinside += f' {i}="{self.properties_inside_tag[i]}"'
+            if self.properties_inside_tag[i] != '':
+                pinside += f' {i}="{self.properties_inside_tag[i]}"'
+            else:
+                pinside += f' {i}'
         return self.kind[:-1] + pinside + '>'
 
-all_elements: dict[str, list[type[Element]]] = {'Text elements': [Sh1, Sh2, Sh3, Sh4, Sh5, Sh6, Sp], 'General elements': [Sbutton, Simg]}
+# Page structure elements
+class Sdiv(Element):
+    kind = '<div>'
+    friendly_name = 'Content division (<div>)'
+    def set_default(self) -> None:
+        self.css = 'height: 100px;\nwidth: 100px;\nborder-style: solid;'
+class Shr(Element):
+    kind = '<hr>'
+    friendly_name = 'Horizontal rule (<hr>)'
+
+all_elements: dict[str, list[type[Element]]] = {'General elements': [Sbutton, Simg], \
+'Text elements': [Sh1, Sh2, Sh3, Sh4, Sh5, Sh6, Sp], \
+'Page structure': [Sdiv, Shr]}

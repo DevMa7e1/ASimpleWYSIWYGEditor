@@ -1,6 +1,6 @@
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtWidgets import QMainWindow, QWidget, QApplication, QHBoxLayout, QVBoxLayout, \
-QLabel, QPushButton, QScrollArea, QTableWidget, QTableWidgetItem, QPlainTextEdit
+QLabel, QPushButton, QScrollArea, QTableWidget, QTableWidgetItem, QPlainTextEdit, QGridLayout
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import sys
 from python_elements import *
@@ -17,6 +17,7 @@ class MainWindow(QMainWindow):
         self.lookup: dict[str, Element] = {}
         self.last_good_title = None
         self.automated_activity = False
+        self.counter = 0
 
         maincontainer = QWidget()
         mainbox = QHBoxLayout()
@@ -61,13 +62,61 @@ class MainWindow(QMainWindow):
 
         mainbox.addWidget(toolcontainer)
 
+        middlebox = QVBoxLayout()
+        middlecontainer = QWidget()
+        middlecontainer.setLayout(middlebox)
+
         html = QWebEngineView()
         html.titleChanged.connect(self.element_clicked)
         html.setZoomFactor(0.5)
         html.setFixedSize(QSize(960, 540))
         self.html = html
         self.refresh_html_content()
-        mainbox.addWidget(html)
+        middlebox.addWidget(html)
+
+        childbox = QGridLayout()
+        childbox.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.childbox = childbox
+        self.childwidgets: list[QPushButton] = []
+        childcontainer = QWidget()
+        childcontainer.setLayout(childbox)
+
+        mainelement = QVBoxLayout()
+        mainelementcontainer = QWidget()
+        mainelementcontainer.setLayout(mainelement)
+        mainelementcontainer.setFixedWidth(200)
+
+        cname = QLabel()
+        cname.setText('Select an element')
+        font = cname.font()
+        font.setPixelSize(18)
+        cname.setFont(font)
+        mainelement.addWidget(cname)
+
+        updown = QHBoxLayout()
+        updown.setContentsMargins(0, 0, 0, 0)
+        updowncontainer = QWidget()
+        updowncontainer.setLayout(updown)
+
+        upbtn = QPushButton()
+        upbtn.setText('Move up')
+        dwbtn = QPushButton()
+        dwbtn.setText('Move down')
+        updown.addWidget(upbtn)
+        updown.addWidget(dwbtn)
+
+        mainelement.addWidget(updowncontainer)
+
+        delbtn = QPushButton()
+        delbtn.setText('Delete element')
+        delbtn.setStyleSheet('color: red;')
+        mainelement.addWidget(delbtn)
+
+        childbox.addWidget(mainelementcontainer)
+
+        middlebox.addWidget(childcontainer)
+
+        mainbox.addWidget(middlecontainer)
 
         properties_container = QWidget()
         properties = QVBoxLayout()
@@ -107,7 +156,7 @@ class MainWindow(QMainWindow):
         properties.addWidget(paddbtn)
 
         ptable = QTableWidget()
-        ptable.setFixedWidth(213)
+        ptable.setFixedWidth(227)
         ptable.setFixedHeight(150)
         ptable.setRowCount(1)
         ptable.setColumnCount(2)
@@ -172,9 +221,16 @@ class MainWindow(QMainWindow):
 
     def add_element(self, element: type[Element]):
         new_element = element()
-        new_element.properties_inside_tag['id'] = f'{element.kind[1:-1]}-{len(self.elements)}'
-        self.lookup[f'{element.kind[1:-1]}-{len(self.elements)}'] = new_element
+        new_element.properties_inside_tag['id'] = f'{element.kind[1:-1]}-{self.counter}'
+        self.lookup[f'{element.kind[1:-1]}-{self.counter}'] = new_element
         self.elements.append(new_element)
+        self.counter += 1
+        ids = []
+        for child in new_element.contains:
+            ids.append(child.kind[1:-1]+'-'+str(len(self.lookup.keys())))
+            self.lookup[child.kind[1:-1]+'-'+str(len(self.lookup.keys()))] = child
+            self.counter += 1
+        new_element.give_out_ids(ids)
         self.refresh_html_content()
 
     def refresh_html_content(self):
@@ -198,6 +254,39 @@ class MainWindow(QMainWindow):
         top = top_top + top_middle + top_bottom
         self.html.setHtml(top + middle + bottom)
 
+    def child_clicked(self, id: str):
+        self.last_good_title = id
+        element = self.lookup[id]
+        self.ptable.setRowCount(len(element.properties_inside_tag.keys()))
+        line = 0
+        self.automated_activity = True
+        self.ename.setText(id)
+        for i in element.properties_inside_tag.keys():
+                newitem = QTableWidgetItem()
+                newitem.setText(i)
+                self.ptable.setItem(line, 0, newitem)
+
+                newitem = QTableWidgetItem()
+                newitem.setText(element.properties_inside_tag[i])
+                self.ptable.setItem(line, 1, newitem)
+                line += 1
+        self.pcss.setPlainText(element.css)
+        for button in self.childwidgets:
+            button.deleteLater()
+            self.childwidgets.remove(button)
+        kinds: dict[str, int] = {}
+        for child in element.contains:
+            cbtn = QPushButton()
+            if child.kind not in kinds.keys():
+                cbtn.setText(child.friendly_name + ' [1]')
+                kinds[child.kind] = 2
+            else:
+                cbtn.setText(f'{child.friendly_name} [{kinds[child.kind]}]')
+                kinds[child.kind] += 1
+            self.childbox.addWidget(cbtn)
+            self.childwidgets.append(cbtn)
+        self.automated_activity = False
+
     def element_clicked(self):
         if self.html.title() != 'default-title' and self.html.title() != 'about:blank' and len(self.html.title()) < 40:
             if self.html.title() != 'parentofelements':
@@ -206,8 +295,8 @@ class MainWindow(QMainWindow):
                 self.ptable.setRowCount(len(element.properties_inside_tag.keys()))
                 line = 0
                 self.automated_activity = True
+                self.ename.setText(self.html.title())
                 for i in element.properties_inside_tag.keys():
-                        self.ename.setText(self.html.title())
                         newitem = QTableWidgetItem()
                         newitem.setText(i)
                         self.ptable.setItem(line, 0, newitem)
@@ -217,6 +306,21 @@ class MainWindow(QMainWindow):
                         self.ptable.setItem(line, 1, newitem)
                         line += 1
                 self.pcss.setPlainText(element.css)
+                for button in self.childwidgets:
+                    button.deleteLater()
+                    self.childwidgets.remove(button)
+                kinds: dict[str, int] = {}
+                for child in element.contains:
+                    cbtn = QPushButton()
+                    if child.kind not in kinds.keys():
+                        cbtn.setText(child.friendly_name + ' [1]')
+                        kinds[child.kind] = 2
+                    else:
+                        cbtn.setText(f'{child.friendly_name} [{kinds[child.kind]}]')
+                        kinds[child.kind] += 1
+                    cbtn.clicked.connect(partial(self.child_clicked, child.properties_inside_tag['id']))
+                    self.childbox.addWidget(cbtn)
+                    self.childwidgets.append(cbtn)
         self.automated_activity = False
 
 window = MainWindow()
