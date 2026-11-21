@@ -13,9 +13,9 @@ class MainWindow(QMainWindow):
         super().__init__(parent)
         self.setWindowTitle('ASimpleWYSIWIGEditor')
 
-        self.elements: list[Element] = []
-        self.lookup: dict[str, Element] = {}
-        self.last_good_title = None
+        self.body = Sbody()
+        self.lookup: dict[str, Element] = {'pagebody-0': self.body}
+        self.last_good_title = 'pagebody-0'
         self.automated_activity = False
         self.counter = 0
 
@@ -74,6 +74,11 @@ class MainWindow(QMainWindow):
         self.refresh_html_content()
         middlebox.addWidget(html)
 
+        childparentbox = QHBoxLayout()
+        childparentcontainer = QWidget()
+        childparentcontainer.setLayout(childparentbox)
+
+        childview = QScrollArea()
         childbox = QGridLayout()
         childbox.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.childbox = childbox
@@ -91,7 +96,13 @@ class MainWindow(QMainWindow):
         font = cname.font()
         font.setPixelSize(18)
         cname.setFont(font)
+        self.cname = cname
         mainelement.addWidget(cname)
+
+        toparent = QPushButton()
+        toparent.setText('Go to parent')
+        toparent.clicked.connect(self.go_to_parent)
+        mainelement.addWidget(toparent)
 
         updown = QHBoxLayout()
         updown.setContentsMargins(0, 0, 0, 0)
@@ -100,8 +111,10 @@ class MainWindow(QMainWindow):
 
         upbtn = QPushButton()
         upbtn.setText('Move up')
+        upbtn.clicked.connect(self.move_up)
         dwbtn = QPushButton()
         dwbtn.setText('Move down')
+        dwbtn.clicked.connect(self.move_down)
         updown.addWidget(upbtn)
         updown.addWidget(dwbtn)
 
@@ -110,11 +123,17 @@ class MainWindow(QMainWindow):
         delbtn = QPushButton()
         delbtn.setText('Delete element')
         delbtn.setStyleSheet('color: red;')
+        delbtn.clicked.connect(self.delete_element)
         mainelement.addWidget(delbtn)
 
-        childbox.addWidget(mainelementcontainer)
+        childparentbox.addWidget(mainelementcontainer)
 
-        middlebox.addWidget(childcontainer)
+        childparentbox.addWidget(childcontainer)
+        childview.setWidget(childparentcontainer)
+        childview.setWidgetResizable(True)
+        childview.setFixedSize(QSize(960, 180))
+
+        middlebox.addWidget(childview)
 
         mainbox.addWidget(middlecontainer)
 
@@ -169,6 +188,42 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(maincontainer)
 
+    def move_up(self):
+        element = self.lookup[self.last_good_title]
+        if Element in type(element.parent).mro():
+            parent: Element = element.parent #type: ignore
+            index = parent.contains.index(element)
+            if index > 0:
+                parent.contains[index-1], parent.contains[index] = parent.contains[index], parent.contains[index-1]
+        self.refresh_html_content()
+
+    def move_down(self):
+            element = self.lookup[self.last_good_title]
+            if Element in type(element.parent).mro():
+                parent: Element = element.parent #type: ignore
+                index = parent.contains.index(element)
+                if index < len(parent.contains)-1:
+                    parent.contains[index+1], parent.contains[index] = parent.contains[index], parent.contains[index+1]
+            self.refresh_html_content()
+
+    def delete_element(self):
+        element = self.lookup[self.last_good_title]
+        if type(Element) != Sbody and Element in type(element.parent).mro():
+            element.parent.contains.remove(element) #type: ignore
+            self.child_clicked(element.parent.properties_inside_tag['id']) #type: ignore
+            del element
+            self.refresh_html_content()
+
+    def go_to_parent(self):
+        element = self.lookup[self.last_good_title]
+        if Element in type(element.parent).mro():
+            self.child_clicked(element.parent.properties_inside_tag['id']) #type: ignore
+            
+    def print_tree(self, element: Element, levels: int = 1):
+        for i in element.contains:
+            print('  '*levels, i.properties_inside_tag['id'])
+            self.print_tree(i, levels+1)
+
     def add_row(self):
         self.ptable.setRowCount(self.ptable.rowCount()+1)
 
@@ -220,10 +275,11 @@ class MainWindow(QMainWindow):
                     self.pcss.setStyleSheet('border-style: solid; border-width: 1px; border-color: red;')
 
     def add_element(self, element: type[Element]):
-        new_element = element()
+        parent = self.lookup[self.last_good_title]
+        new_element = element(parent)
         new_element.properties_inside_tag['id'] = f'{element.kind[1:-1]}-{self.counter}'
         self.lookup[f'{element.kind[1:-1]}-{self.counter}'] = new_element
-        self.elements.append(new_element)
+        parent.contains.append(new_element)
         self.counter += 1
         ids = []
         for child in new_element.contains:
@@ -242,14 +298,13 @@ class MainWindow(QMainWindow):
         bottom = r[r.index('<!--addarea%-->')+len('<!--addarea%-->'):]
         f.close()
         middle = ''
-        for element in self.elements:
-            ihtml, (icss, iccss) = element.to_html(), element.get_css()
-            middle += ihtml + '\n'
-            top_middle += f'#{element.properties_inside_tag['id']} {{\n'
-            top_middle += icss
-            top_middle += '\n}\n'
-            top_middle += icss
-            top_middle += iccss
+        ihtml, (icss, iccss) = self.body.to_html(), self.body.get_css()
+        middle += ihtml + '\n'
+        top_middle += f'#{self.body.properties_inside_tag['id']} {{\n'
+        top_middle += icss
+        top_middle += '\n}\n'
+        top_middle += icss
+        top_middle += iccss
 
         top = top_top + top_middle + top_bottom
         self.html.setHtml(top + middle + bottom)
@@ -261,6 +316,7 @@ class MainWindow(QMainWindow):
         line = 0
         self.automated_activity = True
         self.ename.setText(id)
+        self.cname.setText(id)
         for i in element.properties_inside_tag.keys():
                 newitem = QTableWidgetItem()
                 newitem.setText(i)
@@ -272,9 +328,11 @@ class MainWindow(QMainWindow):
                 line += 1
         self.pcss.setPlainText(element.css)
         for button in self.childwidgets:
+            self.childbox.removeWidget(button)
             button.deleteLater()
-            self.childwidgets.remove(button)
+        self.childwidgets.clear()
         kinds: dict[str, int] = {}
+        index = 0
         for child in element.contains:
             cbtn = QPushButton()
             if child.kind not in kinds.keys():
@@ -283,8 +341,10 @@ class MainWindow(QMainWindow):
             else:
                 cbtn.setText(f'{child.friendly_name} [{kinds[child.kind]}]')
                 kinds[child.kind] += 1
-            self.childbox.addWidget(cbtn)
+            cbtn.clicked.connect(partial(self.child_clicked, child.properties_inside_tag['id']))
+            self.childbox.addWidget(cbtn, index%4, index//4)
             self.childwidgets.append(cbtn)
+            index += 1
         self.automated_activity = False
 
     def element_clicked(self):
@@ -296,6 +356,7 @@ class MainWindow(QMainWindow):
                 line = 0
                 self.automated_activity = True
                 self.ename.setText(self.html.title())
+                self.cname.setText(self.html.title())
                 for i in element.properties_inside_tag.keys():
                         newitem = QTableWidgetItem()
                         newitem.setText(i)
@@ -307,9 +368,11 @@ class MainWindow(QMainWindow):
                         line += 1
                 self.pcss.setPlainText(element.css)
                 for button in self.childwidgets:
+                    self.childbox.removeWidget(button)
                     button.deleteLater()
                     self.childwidgets.remove(button)
                 kinds: dict[str, int] = {}
+                index = 0
                 for child in element.contains:
                     cbtn = QPushButton()
                     if child.kind not in kinds.keys():
@@ -319,8 +382,9 @@ class MainWindow(QMainWindow):
                         cbtn.setText(f'{child.friendly_name} [{kinds[child.kind]}]')
                         kinds[child.kind] += 1
                     cbtn.clicked.connect(partial(self.child_clicked, child.properties_inside_tag['id']))
-                    self.childbox.addWidget(cbtn)
+                    self.childbox.addWidget(cbtn, index%4, index//4)
                     self.childwidgets.append(cbtn)
+                    index += 1
         self.automated_activity = False
 
 window = MainWindow()

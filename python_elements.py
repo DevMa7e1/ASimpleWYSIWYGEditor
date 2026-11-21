@@ -4,10 +4,11 @@ class Element:
     kind = '<undefined>'
     friendly_name = 'Undefined element'
 
-    def __init__(self) -> None:
+    def __init__(self, parent: Element | None = None) -> None:
         self.contains: list[Element] = []
         self.properties_inside_tag = {'id': 'default'}
         self.css = ''
+        self.parent = parent
         self.set_default()
 
     def set_default(self) -> None:
@@ -37,6 +38,8 @@ class Element:
 
     def is_my_css_valid(self):
         valid = True
+        if self.css == '':
+            return True
         for line in self.css.split('\n'):
             if line.count(':') < 1:
                 valid = False
@@ -51,6 +54,12 @@ class Element:
         for i, id in enumerate(ids):
             self.contains[i].properties_inside_tag['id'] = id
 
+# Internal elements
+class Sbody(Element):
+    kind = '<body>'
+    friendly_name = 'Page body'
+    def set_default(self) -> None:
+        self.properties_inside_tag['id'] = 'pagebody-0'
 class Text(Element):
     kind = '*text*'
     text = ''
