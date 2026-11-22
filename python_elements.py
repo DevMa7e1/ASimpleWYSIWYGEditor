@@ -99,6 +99,9 @@ class Sp(Element):
     friendly_name = 'Paragraph (<p>)'
     def set_default(self) -> None:
         self.contains.append(Text())
+class Sbr(Element):
+    kind = '<br>'
+    friendly_name = 'Line break (<br>)'
 class Sh1(Sp):
     kind = '<h1>'
     friendly_name = 'Heading 1 (<h1>)'
@@ -117,11 +120,85 @@ class Sh5(Sp):
 class Sh6(Sp):
     kind = '<h6>'
     friendly_name = 'Heading 6 (<h6>)'
+class Sabbr(Sp):
+    kind = '<abbr>'
+    friendly_name = 'Abbreviation (<abbr>)'
+class Saddress(Sp):
+    kind = '<address>'
+    friendly_name = 'Contact address (<address>)'
+class Sblockquote(Sp):
+    kind = '<blockquote>'
+    friendly_name = 'Block quotation (<blockquote>)'
+class Scite(Sp):
+    kind = '<cite>'
+    friendly_name = 'Citation (<cite>)'
+class Scode(Sp):
+    kind = '<code>'
+    friendly_name = 'Inline code (<code>)'
+class Sins(Sp):
+    kind = '<ins>'
+    friendly_name = 'Inserted text (<ins>)'
+class Sdel(Sp):
+    kind = '<del>'
+    friendly_name = 'Deleted text (<del>)'
+class Sdetails(Sp):
+    kind = '<details>'
+    friendly_name = 'Details disclosure (<details>)'
+class Skbd(Sp):
+    kind = '<kbd>'
+    friendly_name = 'Keyboard input (<kbd>)'
+class Smark(Sp):
+    kind = '<mark>'
+    friendly_name = 'Mark text (<mark>)'
+class Sq(Sp):
+    kind = '<q>'
+    friendly_name = 'Inline quotation (<q>)'
+class Ssamp(Sp):
+    kind = '<samp>'
+    friendly_name = 'Sample output (<samp>)'
+class Ssmall(Sp):
+    kind = '<small>'
+    friendly_name = 'Side comment (<small>)'
+class Ssub(Sp):
+    kind = '<sub>'
+    friendly_name = 'Subscript (<sub>)'
+class Ssup(Sp):
+    kind = '<sup>'
+    friendly_name = 'Superscript (<sup>)'
+class Ssummary(Sp):
+    kind = '<summary>'
+    friendly_name = 'Disclosure summary (<summary>)'
+class Svar(Sp):
+    kind = '<var>'
+    friendly_name = 'Variable (<var>)'
 
-# General elements
-class Sbutton(Element):
+# Functional elements
+class Sa(Sp):
+    kind = '<a>'
+    friendly_name = 'Anchor (<a>)'
+class Sbutton(Sp):
     kind = '<button>'
     friendly_name = 'Button (<button>)'
+class Sinput(Element):
+    kind = '<input>'
+    friendly_name = 'Input (<input>)'
+class Stextarea(Element):
+    kind = '<textarea>'
+    friendly_name = 'Textarea (<textarea>)'
+class Slabel(Sp):
+    kind = '<label>'
+    friendly_name = 'Item label (<label>)'
+class Smeter(Element):
+    kind = '<meter>'
+    friendly_name = 'Meter (<meter>)'
+class Sprogress(Element):
+    kind = '<progress>'
+    friendly_name = 'Progress indicator (<progress>)'
+class Siframe(Element):
+    kind = '<iframe>'
+    friendly_name = 'Inline frame (<iframe>)'
+
+# Media elements
 class Simg(Element):
     kind = '<img>'
     friendly_name = 'Image (<img>)'
@@ -138,6 +215,35 @@ class Simg(Element):
             else:
                 pinside += f' {i}'
         return self.kind[:-1] + pinside + '>'
+class Saudio(Element):
+    kind = '<audio>'
+    friendly_name = 'Audio (<audio>)'
+class Svideo(Element):
+    kind = '<video>'
+    friendly_name = 'Video (<video>)'
+class Sembed(Element):
+    kind = '<embed>'
+    friendly_name = 'Embed external content (<embed>)'
+
+    def set_default(self) -> None:
+        self.properties_inside_tag['height'] = '100'
+        self.properties_inside_tag['width'] = '100'
+
+    def to_html(self) -> str:
+        pinside = ''
+        for i in self.properties_inside_tag.keys():
+            if self.properties_inside_tag[i] != '':
+                pinside += f' {i}="{self.properties_inside_tag[i]}"'
+            else:
+                pinside += f' {i}'
+        return self.kind[:-1] + pinside + '>'
+class Sobject(Element):
+    kind = '<object>'
+    friendly_name = 'External object (<object>)'
+
+    def set_default(self) -> None:
+        self.properties_inside_tag['height'] = '100'
+        self.properties_inside_tag['width'] = '100'
 
 # Page structure elements
 class Sdiv(Element):
@@ -145,10 +251,17 @@ class Sdiv(Element):
     friendly_name = 'Content division (<div>)'
     def set_default(self) -> None:
         self.css = 'height: 100px;\nwidth: 100px;\nborder-style: solid;'
+class Sspan(Element):
+    kind = '<span>'
+    friendly_name = 'Content span (<span>)'
+    def set_default(self) -> None:
+        self.css = 'height: 100px;\nwidth: 100px;\nborder-style: solid;'
 class Shr(Element):
     kind = '<hr>'
     friendly_name = 'Horizontal rule (<hr>)'
 
-all_elements: dict[str, list[type[Element]]] = {'General elements': [Sbutton, Simg], \
-'Text elements': [Sh1, Sh2, Sh3, Sh4, Sh5, Sh6, Sp], \
-'Page structure': [Sdiv, Shr]}
+all_elements: dict[str, list[type[Element]]] = {'Functional elements': [Sa, Sbutton, Sinput, Stextarea, Slabel, Smeter, Sprogress, Siframe], \
+'Media elements': [Simg, Saudio, Sembed, Sobject], \
+'Text elements': [Sh1, Sh2, Sh3, Sh4, Sh5, Sh6, Sp, Sabbr, Saddress, Scite, Scode, Sins, Sdel, \
+Sdetails, Skbd, Smark, Sq, Ssamp, Ssmall, Ssub, Ssup, Ssummary, Svar], \
+'Page structure': [Sdiv, Sspan, Shr]}

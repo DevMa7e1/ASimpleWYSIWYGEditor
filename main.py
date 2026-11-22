@@ -56,7 +56,7 @@ class MainWindow(QMainWindow):
                 addbox.addWidget(addbtn)
         
         addview = QScrollArea()
-        addview.setFixedWidth(170)
+        addview.setFixedWidth(245)
         addview.setWidget(addcontainer)
         toolbox.addWidget(addview)
 
@@ -350,41 +350,44 @@ class MainWindow(QMainWindow):
     def element_clicked(self):
         if self.html.title() != 'default-title' and self.html.title() != 'about:blank' and len(self.html.title()) < 40:
             if self.html.title() != 'parentofelements':
-                self.last_good_title = self.html.title()
-                element = self.lookup[self.html.title()]
-                self.ptable.setRowCount(len(element.properties_inside_tag.keys()))
-                line = 0
-                self.automated_activity = True
-                self.ename.setText(self.html.title())
-                self.cname.setText(self.html.title())
-                for i in element.properties_inside_tag.keys():
-                        newitem = QTableWidgetItem()
-                        newitem.setText(i)
-                        self.ptable.setItem(line, 0, newitem)
+                if self.html.title() not in self.lookup:
+                    self.html.back()
+                else:
+                    self.last_good_title = self.html.title()
+                    element = self.lookup[self.html.title()]
+                    self.ptable.setRowCount(len(element.properties_inside_tag.keys()))
+                    line = 0
+                    self.automated_activity = True
+                    self.ename.setText(self.html.title())
+                    self.cname.setText(self.html.title())
+                    for i in element.properties_inside_tag.keys():
+                            newitem = QTableWidgetItem()
+                            newitem.setText(i)
+                            self.ptable.setItem(line, 0, newitem)
 
-                        newitem = QTableWidgetItem()
-                        newitem.setText(element.properties_inside_tag[i])
-                        self.ptable.setItem(line, 1, newitem)
-                        line += 1
-                self.pcss.setPlainText(element.css)
-                for button in self.childwidgets:
-                    self.childbox.removeWidget(button)
-                    button.deleteLater()
-                    self.childwidgets.remove(button)
-                kinds: dict[str, int] = {}
-                index = 0
-                for child in element.contains:
-                    cbtn = QPushButton()
-                    if child.kind not in kinds.keys():
-                        cbtn.setText(child.friendly_name + ' [1]')
-                        kinds[child.kind] = 2
-                    else:
-                        cbtn.setText(f'{child.friendly_name} [{kinds[child.kind]}]')
-                        kinds[child.kind] += 1
-                    cbtn.clicked.connect(partial(self.child_clicked, child.properties_inside_tag['id']))
-                    self.childbox.addWidget(cbtn, index%4, index//4)
-                    self.childwidgets.append(cbtn)
-                    index += 1
+                            newitem = QTableWidgetItem()
+                            newitem.setText(element.properties_inside_tag[i])
+                            self.ptable.setItem(line, 1, newitem)
+                            line += 1
+                    self.pcss.setPlainText(element.css)
+                    for button in self.childwidgets:
+                        self.childbox.removeWidget(button)
+                        button.deleteLater()
+                        self.childwidgets.remove(button)
+                    kinds: dict[str, int] = {}
+                    index = 0
+                    for child in element.contains:
+                        cbtn = QPushButton()
+                        if child.kind not in kinds.keys():
+                            cbtn.setText(child.friendly_name + ' [1]')
+                            kinds[child.kind] = 2
+                        else:
+                            cbtn.setText(f'{child.friendly_name} [{kinds[child.kind]}]')
+                            kinds[child.kind] += 1
+                        cbtn.clicked.connect(partial(self.child_clicked, child.properties_inside_tag['id']))
+                        self.childbox.addWidget(cbtn, index%4, index//4)
+                        self.childwidgets.append(cbtn)
+                        index += 1
         self.automated_activity = False
 
 window = MainWindow()
