@@ -17,7 +17,7 @@ class MainWindow(QMainWindow):
         self.lookup: dict[str, Element] = {'pagebody-0': self.body}
         self.last_good_title = 'pagebody-0'
         self.automated_activity = False
-        self.counter = 0
+        self.counter = 1
 
         maincontainer = QWidget()
         mainbox = QHBoxLayout()
@@ -246,6 +246,7 @@ class MainWindow(QMainWindow):
                                 self.refresh_html_content()
                             else:
                                 self.ptable.removeRow(i)
+                                self.refresh_html_content()
                         else:
                             newitem = QTableWidgetItem()
                             newitem.setText(element.properties_inside_tag['id'])
@@ -388,6 +389,42 @@ class MainWindow(QMainWindow):
                         self.childbox.addWidget(cbtn, index%4, index//4)
                         self.childwidgets.append(cbtn)
                         index += 1
+            else:
+                self.last_good_title = 'pagebody-0'
+                element = self.body
+                self.ptable.setRowCount(len(element.properties_inside_tag.keys()))
+                line = 0
+                self.automated_activity = True
+                self.ename.setText(self.last_good_title)
+                self.cname.setText(self.last_good_title)
+                for i in element.properties_inside_tag.keys():
+                        newitem = QTableWidgetItem()
+                        newitem.setText(i)
+                        self.ptable.setItem(line, 0, newitem)
+
+                        newitem = QTableWidgetItem()
+                        newitem.setText(element.properties_inside_tag[i])
+                        self.ptable.setItem(line, 1, newitem)
+                        line += 1
+                self.pcss.setPlainText(element.css)
+                for button in self.childwidgets:
+                    self.childbox.removeWidget(button)
+                    button.deleteLater()
+                    self.childwidgets.remove(button)
+                kinds: dict[str, int] = {}
+                index = 0
+                for child in element.contains:
+                    cbtn = QPushButton()
+                    if child.kind not in kinds.keys():
+                        cbtn.setText(child.friendly_name + ' [1]')
+                        kinds[child.kind] = 2
+                    else:
+                        cbtn.setText(f'{child.friendly_name} [{kinds[child.kind]}]')
+                        kinds[child.kind] += 1
+                    cbtn.clicked.connect(partial(self.child_clicked, child.properties_inside_tag['id']))
+                    self.childbox.addWidget(cbtn, index%4, index//4)
+                    self.childwidgets.append(cbtn)
+                    index += 1
         self.automated_activity = False
 
 window = MainWindow()

@@ -81,14 +81,11 @@ class Text(Element):
             return list(super().keys()) + ['text']
         def __len__(self) -> int:
             return super().__len__() + 1
-    
-    def __init__(self) -> None:
-        super().__init__()
+
+    def set_default(self) -> None:
         self.properties_inside_tag = self.text_dict()
         self.properties_inside_tag.set_owner(self)
         self.properties_inside_tag['id'] = 'default'
-
-    def set_default(self) -> None:
         self.text = 'Text element'
     def to_html(self) -> str:
         return self.text
@@ -98,7 +95,7 @@ class Sp(Element):
     kind = '<p>'
     friendly_name = 'Paragraph (<p>)'
     def set_default(self) -> None:
-        self.contains.append(Text())
+        self.contains.append(Text(self))
 class Sbr(Element):
     kind = '<br>'
     friendly_name = 'Line break (<br>)'
