@@ -5,8 +5,11 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 import sys
 from python_elements import *
 from functools import partial
+from pathlib import Path
 
 app = QApplication(sys.argv)
+translator_html = str(Path(__file__).parent.absolute().joinpath(f'translator.html'))
+template_html = str(Path(__file__).parent.absolute().joinpath(f'template.html'))
 
 class MainWindow(QMainWindow):
     def __init__(self, /, parent: QWidget | None = None) -> None:
@@ -194,7 +197,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(maincontainer)
 
     def export_html(self):
-        f = open('template.html')
+        f = open(template_html)
         r = f.read()
         top_top = r[:r.index('/*stylearea*/')]
         top_middle = ''
@@ -332,7 +335,7 @@ class MainWindow(QMainWindow):
         self.child_clicked(self.last_good_title)
 
     def refresh_html_content(self):
-        f = open('translator.html')
+        f = open(translator_html)
         r = f.read()
         top_top = r[:r.index('/*stylearea*/')]
         top_middle = ''

@@ -53,7 +53,7 @@ These sections will be referred to by the names provided.
 5. `source venv/bin/activate` (modify for your shell)
 6. `pip install -r requirements.txt`
 7. `pip install pyinstaller`
-8. `python3 -m PyInstaller -F -n ASimpleWYSIWYGEditor main.py --add-data template.html:. translator.html:. --noconsole`
+8. `python3 -m PyInstaller -F -n ASimpleWYSIWYGEditor main.py --add-data template.html:. --add-data translator.html:. --noconsole`
 
 The resulting executable can be found in the **dist** folder.
 
@@ -67,6 +67,6 @@ The resulting executable can be found in the **dist** folder.
 7. Run the command `venv\Scripts\activate`
 8. Run the command `pip install -r requirements.txt`
 9. Run the command `pip install pyinstaller`
-10. Run the command `python -m PyInstaller -F -n ASimpleWYSIWYGEditor --noconsole main.py --add-data res\*:.\res`
+10. Run the command `python -m PyInstaller -F -n ASimpleWYSIWYGEditor --noconsole main.py --add-data template.html:. --add-data translator.html:.`
 
 The resulting executable can be found in the **dist** folder.
