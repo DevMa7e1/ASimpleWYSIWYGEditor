@@ -1,4 +1,5 @@
 from typing import Any
+from html import escape
 
 class Element:
     kind = '<undefined>'
@@ -24,7 +25,9 @@ class Element:
         innerhtml = ''
         for element in self.contains:
             innerhtml += element.to_html()
-        return self.kind[:-1] + pinside + '>' + innerhtml + '</' + self.kind[1:]
+        if innerhtml != '':
+            innerhtml = '\n' + innerhtml
+        return self.kind[:-1] + pinside + '>' + innerhtml + '</' + self.kind[1:] + '\n'
 
     def get_css(self) -> tuple[str, str]:
         ccss = ''
@@ -60,6 +63,7 @@ class Sbody(Element):
     friendly_name = 'Page body'
     def set_default(self) -> None:
         self.properties_inside_tag['id'] = 'pagebody-0'
+        self.properties_inside_tag['onload'] = 'loaded()'
 class Text(Element):
     kind = '*text*'
     text = ''
@@ -88,7 +92,7 @@ class Text(Element):
         self.properties_inside_tag['id'] = 'default'
         self.text = 'Text element'
     def to_html(self) -> str:
-        return self.text
+        return escape(self.text)
 
 # Text elements
 class Sp(Element):
@@ -99,6 +103,8 @@ class Sp(Element):
 class Sbr(Element):
     kind = '<br>'
     friendly_name = 'Line break (<br>)'
+    def to_html(self) -> str:
+            return '</br>'
 class Sh1(Sp):
     kind = '<h1>'
     friendly_name = 'Heading 1 (<h1>)'
@@ -215,6 +221,9 @@ class Simg(Element):
 class Saudio(Element):
     kind = '<audio>'
     friendly_name = 'Audio (<audio>)'
+    def set_default(self) -> None:
+        self.properties_inside_tag['controls'] = ''
+        self.properties_inside_tag['src'] = ''
 class Svideo(Element):
     kind = '<video>'
     friendly_name = 'Video (<video>)'
@@ -259,6 +268,6 @@ class Shr(Element):
 
 all_elements: dict[str, list[type[Element]]] = {'Functional elements': [Sa, Sbutton, Sinput, Stextarea, Slabel, Smeter, Sprogress, Siframe], \
 'Media elements': [Simg, Saudio, Sembed, Sobject], \
-'Text elements': [Sh1, Sh2, Sh3, Sh4, Sh5, Sh6, Sp, Sabbr, Saddress, Scite, Scode, Sins, Sdel, \
+'Text elements': [Sh1, Sh2, Sh3, Sh4, Sh5, Sh6, Sp, Sbr, Sabbr, Saddress, Scite, Scode, Sins, Sdel, \
 Sdetails, Skbd, Smark, Sq, Ssamp, Ssmall, Ssub, Ssup, Ssummary, Svar], \
 'Page structure': [Sdiv, Sspan, Shr]}

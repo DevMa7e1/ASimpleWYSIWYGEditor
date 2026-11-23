@@ -6,24 +6,16 @@
             var last = null;
             function clicked(ev){
                 document.getElementsByTagName('title')[0].innerHTML = ev.target.id
-                //document.getElementById(ev.target.id).style = 'border-style: solid; border-width: 3px; border-color: light-gray;'
-                if(last != null){
-                    //last.style = '';
-                }
                 last = document.getElementById(ev.target.id);
             }
             function loaded(){
-                const parent = document.querySelector('#parentofelements')
+                const parent = document.querySelector('#pagebody-0')
                 parent.addEventListener('click', clicked)
             }
         </script>
-        <style>
-            /*stylearea*/
-        </style>
+<style>
+/*stylearea*/
+</style>
     </head>
-    <body onload="loaded()">
-        <div id="parentofelements">
-            <!--addarea%-->
-        </div>
-    </body>
+<!--addarea%-->
 </html>

@@ -1,6 +1,6 @@
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtWidgets import QMainWindow, QWidget, QApplication, QHBoxLayout, QVBoxLayout, \
-QLabel, QPushButton, QScrollArea, QTableWidget, QTableWidgetItem, QPlainTextEdit, QGridLayout
+QLabel, QPushButton, QScrollArea, QTableWidget, QTableWidgetItem, QPlainTextEdit, QGridLayout, QFileDialog
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import sys
 from python_elements import *
@@ -11,7 +11,7 @@ app = QApplication(sys.argv)
 class MainWindow(QMainWindow):
     def __init__(self, /, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle('ASimpleWYSIWIGEditor')
+        self.setWindowTitle('ASimpleWYSIWYGEditor')
 
         self.body = Sbody()
         self.lookup: dict[str, Element] = {'pagebody-0': self.body}
@@ -184,9 +184,43 @@ class MainWindow(QMainWindow):
         self.ptable = ptable
         properties.addWidget(ptable)
 
+        export = QPushButton()
+        export.setText('Export HTML document')
+        export.clicked.connect(self.export_html)
+        properties.addWidget(export)
+
         mainbox.addWidget(properties_container)
 
         self.setCentralWidget(maincontainer)
+
+    def export_html(self):
+        f = open('template.html')
+        r = f.read()
+        top_top = r[:r.index('/*stylearea*/')]
+        top_middle = ''
+        top_bottom = r[r.index('/*stylearea*/')+len('/*stylearea*/'):r.index('<!--addarea%-->')]
+        bottom = r[r.index('<!--addarea%-->')+len('<!--addarea%-->'):]
+        f.close()
+        middle = ''
+        self.body.properties_inside_tag.pop('onload')
+        ihtml, (icss, iccss) = self.body.to_html(), self.body.get_css()
+        self.body.properties_inside_tag['onload'] = 'loaded()'
+        middle += ihtml + '\n'
+        top_middle += f'#{self.body.properties_inside_tag['id']} {{\n'
+        top_middle += icss
+        top_middle += '\n}\n'
+        top_middle += iccss
+
+        top = top_top + top_middle + top_bottom
+        total = top + middle + bottom
+        filedialog = QFileDialog()
+        name, _ = filedialog.getSaveFileName(self, 'Export HTML document', filter="HTML document (*.html)")
+        if name:
+            if not name.endswith('.html'):
+                name += '.html'
+            f = open(name, 'w')
+            f.write(total)
+            f.close()
 
     def move_up(self):
         element = self.lookup[self.last_good_title]
@@ -236,17 +270,18 @@ class MainWindow(QMainWindow):
                 _id = element.properties_inside_tag['id']
                 element.properties_inside_tag.clear()
                 element.properties_inside_tag['id'] = _id
+                refresh = False
                 for i in range(self.ptable.rowCount()):
                     name = self.ptable.item(i, 0)
                     value = self.ptable.item(i, 1)
                     if type(name) == QTableWidgetItem and type(value) == QTableWidgetItem:
                         if name.text() != 'id':
                             if name.text() != '':
-                                element.properties_inside_tag[name.text()] = value.text()
-                                self.refresh_html_content()
+                                    element.properties_inside_tag[name.text()] = value.text()
+                                    refresh = True
                             else:
                                 self.ptable.removeRow(i)
-                                self.refresh_html_content()
+                                refresh = True
                         else:
                             newitem = QTableWidgetItem()
                             newitem.setText(element.properties_inside_tag['id'])
@@ -260,6 +295,11 @@ class MainWindow(QMainWindow):
                             newitem = QTableWidgetItem()
                             newitem.setText(element.properties_inside_tag['id'])
                             self.ptable.setItem(i, 1, newitem)
+                if Sbody in type(element).mro():
+                    self.body.properties_inside_tag['onload'] = 'loaded()'
+                    self.child_clicked('pagebody-0')
+                if refresh:
+                    self.refresh_html_content()
             self.automated_activity = False
     
     def update_css(self):
@@ -289,6 +329,7 @@ class MainWindow(QMainWindow):
             self.counter += 1
         new_element.give_out_ids(ids)
         self.refresh_html_content()
+        self.child_clicked(self.last_good_title)
 
     def refresh_html_content(self):
         f = open('translator.html')
@@ -304,7 +345,6 @@ class MainWindow(QMainWindow):
         top_middle += f'#{self.body.properties_inside_tag['id']} {{\n'
         top_middle += icss
         top_middle += '\n}\n'
-        top_middle += icss
         top_middle += iccss
 
         top = top_top + top_middle + top_bottom
@@ -350,58 +390,21 @@ class MainWindow(QMainWindow):
 
     def element_clicked(self):
         if self.html.title() != 'default-title' and self.html.title() != 'about:blank' and len(self.html.title()) < 40:
-            if self.html.title() != 'parentofelements':
-                if self.html.title() not in self.lookup:
-                    self.html.back()
-                else:
-                    self.last_good_title = self.html.title()
-                    element = self.lookup[self.html.title()]
-                    self.ptable.setRowCount(len(element.properties_inside_tag.keys()))
-                    line = 0
-                    self.automated_activity = True
-                    self.ename.setText(self.html.title())
-                    self.cname.setText(self.html.title())
-                    for i in element.properties_inside_tag.keys():
-                            newitem = QTableWidgetItem()
-                            newitem.setText(i)
-                            self.ptable.setItem(line, 0, newitem)
-
-                            newitem = QTableWidgetItem()
-                            newitem.setText(element.properties_inside_tag[i])
-                            self.ptable.setItem(line, 1, newitem)
-                            line += 1
-                    self.pcss.setPlainText(element.css)
-                    for button in self.childwidgets:
-                        self.childbox.removeWidget(button)
-                        button.deleteLater()
-                        self.childwidgets.remove(button)
-                    kinds: dict[str, int] = {}
-                    index = 0
-                    for child in element.contains:
-                        cbtn = QPushButton()
-                        if child.kind not in kinds.keys():
-                            cbtn.setText(child.friendly_name + ' [1]')
-                            kinds[child.kind] = 2
-                        else:
-                            cbtn.setText(f'{child.friendly_name} [{kinds[child.kind]}]')
-                            kinds[child.kind] += 1
-                        cbtn.clicked.connect(partial(self.child_clicked, child.properties_inside_tag['id']))
-                        self.childbox.addWidget(cbtn, index%4, index//4)
-                        self.childwidgets.append(cbtn)
-                        index += 1
+            if self.html.title() not in self.lookup:
+                self.html.back()
+                self.refresh_html_content()
             else:
-                self.last_good_title = 'pagebody-0'
-                element = self.body
+                self.last_good_title = self.html.title()
+                element = self.lookup[self.html.title()]
                 self.ptable.setRowCount(len(element.properties_inside_tag.keys()))
                 line = 0
                 self.automated_activity = True
-                self.ename.setText(self.last_good_title)
-                self.cname.setText(self.last_good_title)
+                self.ename.setText(self.html.title())
+                self.cname.setText(self.html.title())
                 for i in element.properties_inside_tag.keys():
                         newitem = QTableWidgetItem()
                         newitem.setText(i)
                         self.ptable.setItem(line, 0, newitem)
-
                         newitem = QTableWidgetItem()
                         newitem.setText(element.properties_inside_tag[i])
                         self.ptable.setItem(line, 1, newitem)
