@@ -1,10 +1,17 @@
 # ASimpleWYSIWYGEditor
+<img width="1570" height="835" src="https://github.com/user-attachments/assets/08af5e75-738b-474d-880c-e6a595000c65" />
 A basic HTML/CSS WYSIWYG editor intended for making static web pages
+
+## Download links
+* ### Windows
+    x86_64 binary --> [Download here](https://github.com/DevMa7e1/ASimpleWYSIWYGEditor/releases/download/v1.0.0/ASimpleWYSIWYGEditor-Windows.zip)
+
+* ### Linux
+    x86_64 binary --> [Download here](https://github.com/DevMa7e1/ASimpleWYSIWYGEditor/releases/download/v1.0.0/ASimpleWYSIWYGEditor-Linux.zip)
 
 ## How to use it
 The application is split in 5 sections:
-
-(insert-image)
+<img width="795" src="https://github.com/user-attachments/assets/d70a4339-27ee-44a0-ac9e-b50625d26db8" />
 
 1. Toolbox
 2. Live preview
